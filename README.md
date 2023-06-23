@@ -1054,7 +1054,7 @@ git checkout feature/msp-14
       Command:
 ```
 ```bash
-PATH="$PATH:/usr/bin"
+PATH="$PATH:/usr/local/bin"
 APP_REPO_NAME="clarusway-repo/petclinic-app-dev"
 AWS_REGION="us-east-1"
 
@@ -1069,7 +1069,7 @@ aws ecr create-repository \
 * Prepare a script to create Docker Registry for `dev` on AWS ECR and save it as `create-ecr-docker-registry-for-dev.sh` under `infrastructure` folder.
 
 ``` bash
-PATH="$PATH:/usr/bin"
+PATH="$PATH:/usr/local/bin"
 APP_REPO_NAME="clarusway-repo/petclinic-app-dev"
 AWS_REGION="us-east-1"
 
@@ -1373,7 +1373,7 @@ git push --set-upstream origin feature/msp-16
 ```bash
 echo $PATH
 whoami
-PATH="$PATH:/usr/bin:/usr/local/bin"
+PATH="$PATH:/usr/local/bin"
 python3 --version
 pip3 --version
 ansible --version
@@ -1417,7 +1417,7 @@ terraform apply -auto-approve -no-color
 
 ```bash
 ANS_KEYPAIR="petclinic-ansible-test-dev.key"
-ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${WORKSPACE}/${ANS_KEYPAIR} ubuntu@172.31.27.225 hostname
+ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i ${WORKSPACE}/${ANS_KEYPAIR} ubuntu@172.31.91.243 hostname
 ```
   * Click `Save`
 
@@ -3426,9 +3426,9 @@ nano /home/ec2-user/.m2/settings.xml
 git add .
 git commit -m 'added Nexus server terraform files'
 git push --set-upstream origin feature/msp-26
-git checkout dev
+git checkout release
 git merge feature/msp-26
-git push origin dev
+git push origin release
 ```
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -3681,6 +3681,13 @@ git merge feature/msp-27
 git push origin release
 ```
 
+Note: To see petclinic app on your browser, change networkpolicy ingress part as below on rancher server.
+
+```yaml
+  ingress:
+    - {}
+```
+
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # 
 ## MSP 28 - Prepare a Production Pipeline
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
@@ -3816,7 +3823,7 @@ docker push "${IMAGE_TAG_PROMETHEUS_SERVICE}"
 echo 'Deploying App on Kubernetes'
 envsubst < k8s/petclinic_chart/values-template.yaml > k8s/petclinic_chart/values.yaml
 sed -i s/HELM_VERSION/${BUILD_NUMBER}/ k8s/petclinic_chart/Chart.yaml
-AWS_REGION=$AWS_REGION helm repo add stable-petclinic s3://petclinic-helm-charts-<put-your-name>/stable/myapp/ || echo "repository name already exists"
+AWS_REGION=$AWS_REGION helm repo add stable-petclinic s3://petclinic-helm-charts-bekir/stable/myapp/ || echo "repository name already exists"
 AWS_REGION=$AWS_REGION helm repo update
 helm package k8s/petclinic_chart
 AWS_REGION=$AWS_REGION helm s3 push --force petclinic_chart-${BUILD_NUMBER}.tgz stable-petclinic
@@ -3856,7 +3863,7 @@ kind: Service
 metadata:
   annotations:
     kompose.cmd: kompose convert -f docker-compose-local-db.yml
-    kompose.version: 1.26.1 (a9d05d509)
+    kompose.version: 1.28.0 (c4137012e)
   labels:
     io.kompose.service: mysql-server
   name: mysql-server
@@ -3991,6 +3998,12 @@ git checkout feature/msp-29
 
 * Configure TLS(SSL) certificate for `petclinic.clarusway.us` using `cert-manager` on petclinic K8s cluster with the following steps.
 
+- Switch user to jenkins for managing eks cluster. Execute following commands as `jenkins` user.
+
+```bash
+sudo su - jenkins
+```
+
 * Install the `cert-manager` on petclinic cluster. See [Cert-Manager info](https://cert-manager.io/docs/).
 
   * Create the namespace for cert-manager
@@ -4032,7 +4045,7 @@ git checkout feature/msp-29
   kubectl get pods --namespace cert-manager -o wide
   ```
 
-* Create `ClusterIssuer` with name of `tls-cluster-issuer-prod.yml` for the production certificate through `Let's Encrypt ACME` (Automated Certificate Management Environment) with following content by importing YAML file on Ranhcer and save it under `k8s` folder. *Note that certificate will only be created after annotating and updating the `Ingress` resource.*
+* Create `ClusterIssuer` with name of `tls-cluster-issuer-prod.yml` for the production certificate through `Let's Encrypt ACME` (Automated Certificate Management Environment) with following content by importing YAML file on Ranhcer and save it under `/var/lib/jenkins` folder. *Note that certificate will only be created after annotating and updating the `Ingress` resource.*
 
 ```yaml
 apiVersion: cert-manager.io/v1
@@ -4097,8 +4110,8 @@ git commit -m 'added tls scripts for petclinic-production'
 git push --set-upstream origin feature/msp-29
 git checkout main
 git merge feature/msp-29
-git push origin main
-```
+git push origin main 
+
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 ## MSP 30 - Monitoring with Prometheus and Grafana
